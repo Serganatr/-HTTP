@@ -17,26 +17,44 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 class Program
 {
     static HttpClient httpClient = new HttpClient();
-    
+
     static async Task Main()
     {
+        int i = 0;
+        bool b = false;
         Saves person = new Saves();
-        for (int i = 0; i < 22227980; i = i + 100)
+        Task.Run(() => process());
+        private async void  process()
         {
-            var response = await httpClient.GetAsync($"https://fgis.gost.ru/fundmetrology/eapi/vri?verification_date=2021-09-01&start={i}&rows={100}");
-            person = await response.Content.ReadFromJsonAsync<Saves>();
-            string content = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"{content}");
             using (FileStream fs = new("save_1.json", FileMode.OpenOrCreate))
             {
+                do
+                {
+                    do
+                    {
+                        try
+                        {
+                            var response = await httpClient.GetAsync($"https://fgis.gost.ru/fundmetrology/eapi/vri?verification_date=2021-09-01&start={i}&rows={100}");
+                            person = await response.Content.ReadFromJsonAsync<Saves>();
+                            b = true;
+                        }
+                        catch
+                        {
+                            b = false;
+                        }
+                    } while (b == false);
+                    // string content = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"{i}");
+                    i = i + 100;
+                } while (i < person.result.count);
                 var options = new JsonSerializerOptions
                 {
                     WriteIndented = true
                 };
                 await JsonSerializer.SerializeAsync<Saves>(fs, person, options);
             }
-            response = null;
         }
+        
     }
 }
 class Item

@@ -1220,11 +1220,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\User\\Desktop\\FGIS\\FGIS\\FGIS.csproj",
+      "projectUniqueName": "C:\\Users\\User\\Desktop\\Практика\\FGIS\\FGIS\\FGIS.csproj",
       "projectName": "FGIS",
-      "projectPath": "C:\\Users\\User\\Desktop\\FGIS\\FGIS\\FGIS.csproj",
+      "projectPath": "C:\\Users\\User\\Desktop\\Практика\\FGIS\\FGIS\\FGIS.csproj",
       "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\User\\Desktop\\FGIS\\FGIS\\obj\\",
+      "outputPath": "C:\\Users\\User\\Desktop\\Практика\\FGIS\\FGIS\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config",

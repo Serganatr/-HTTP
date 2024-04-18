@@ -10,14 +10,19 @@ using System.Windows.Forms;
 using System.Data.SQLite;
 using System.Text.Json;
 using System.IO;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading;
 
 namespace FGIS
 {
     public partial class Form1 : Form
     {
+        static HttpClient httpClient = new HttpClient();
         Result Save = new Result();
         Result tmp = new Result();
         Date date = new Date();
+        Result HTTP = new Result();
         Result_poisk Save_poisk = new Result_poisk();
         bool True = true;
         int[] ID_MASS = new int[1] { 0 };
@@ -63,7 +68,7 @@ namespace FGIS
             }
             for (int i = 0; i < 11; i++)
             {
-                for (int j = 0; j < 2; j++)
+                for (int j = 0; j < 3; j++)
                 {
                     DataGridViewTextBoxColumn Column;
                     Column = new System.Windows.Forms.DataGridViewTextBoxColumn
@@ -111,17 +116,22 @@ namespace FGIS
                     }
                     if (j == 0)
                     {
-                        dataGridView2.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] { Column }); 
+                        dataGridView2.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] { Column });
                     }
                     else if (j == 1)
                     {
                         dataGridView3.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] { Column });
+                    }
+                    else if (j == 2)
+                    {
+                        dataGridView4.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] { Column });
                     }
                 }
             }
             using (FileStream fs = new("result.json", FileMode.OpenOrCreate))
             {
                 Save = await JsonSerializer.DeserializeAsync<Result>(fs);
+                HTTP = Save;
                 tmp = Save;
                 Dgv3();
             }
@@ -505,7 +515,6 @@ namespace FGIS
                 }
             }
         }
-
         private void Select_SQL_Click(object sender, EventArgs e)
         {
             int DATE = 0;
@@ -597,6 +606,148 @@ namespace FGIS
                 BD(sqlQuery, 2);
             }
         }
+
+        private async void HTTP_LOAD_Click(object sender, EventArgs e)
+        {
+            HTTP.items.Clear();
+            using (FileStream f = new("result.json", FileMode.OpenOrCreate))
+            {
+                Save = await JsonSerializer.DeserializeAsync<Result>(f);
+            }
+            int ij = 0;
+            float p;
+            bool b = false;
+            bool b_1 = false;
+            string Http_zapros;
+            Saves person = new Saves();
+            if (mit_number.Text != "")
+            {
+                Http_zapros = $"https://fgis.gost.ru/fundmetrology/eapi/vri?mit_number={mit_number.Text}";
+                if (mi_modification.Text != "")
+                {
+                    Http_zapros += $"&mi_modification={mi_modification.Text}";
+                }
+                if (verification_date_start.Text != "")
+                {
+                    Http_zapros += $"&verification_date_start={verification_date_start.Text}";
+                }
+                if (verification_date_end.Text != "")
+                {
+                    Http_zapros += $"&verification_date_end={verification_date_end.Text}";
+                }
+                using (FileStream fs = new("save_HTTP.json", FileMode.OpenOrCreate))
+                {
+                    do
+                    {
+                        do
+                        {
+                            try
+                            {
+                                var response = await httpClient.GetAsync($"{Http_zapros}&start={ij}&rows={100}");
+                                person = await response.Content.ReadFromJsonAsync<Saves>();
+                                b = true;
+                            }
+                            catch
+                            {
+                                b = false;
+                            }
+                        } while (b == false);
+                        ij = ij + 100;
+                        p = ij;
+                        p = p / person.result.count * 100;
+                        richTextBox3.Text = $"[{p.ToString("0")}%]";
+                    } while (ij < person.result.count);
+                    
+                    foreach (var item in person.result.items)
+                    {
+                        b_1 = true;
+                        try
+                        {
+                            foreach (var it in HTTP.items)
+                            {
+                                if (item.mit_number == it.mit_number && item.mi_modification == it.mi_modification && item.org_title == it.org_title && item.verification_date == it.verification_date)
+                                {
+                                    b_1 = false;
+                                }
+                                if (item.mit_number == it.mit_number && item.mi_modification == it.mi_modification && item.org_title == it.org_title && item.verification_date != it.verification_date)
+                                {
+                                    string ver_1 = "", ver_2 = "";
+                                    for (int i = 6; i < 10; i++)
+                                    {
+                                        ver_1 += item.verification_date[i].ToString();
+                                        ver_2 += it.verification_date[i].ToString();
+                                    }
+                                    if (Convert.ToInt32(ver_1) > Convert.ToInt32(ver_2))
+                                    {
+                                        it.verification_date = item.verification_date;
+                                    }
+                                    else if (Convert.ToInt32(ver_1) == Convert.ToInt32(ver_2))
+                                    {
+                                        ver_1 = "";
+                                        ver_2 = "";
+                                        for (int i = 3; i < 5; i++)
+                                        {
+                                            ver_1 += item.verification_date[i].ToString();
+                                            ver_2 += it.verification_date[i].ToString();
+                                        }
+                                        if (Convert.ToInt32(ver_1) > Convert.ToInt32(ver_2))
+                                        {
+                                            it.verification_date = item.verification_date;
+                                        }
+                                        else if (Convert.ToInt32(ver_1) == Convert.ToInt32(ver_2))
+                                        {
+                                            ver_1 = "";
+                                            ver_2 = "";
+                                            for (int i = 0; i < 2; i++)
+                                            {
+                                                ver_1 += item.verification_date[i].ToString();
+                                                ver_2 += it.verification_date[i].ToString();
+                                            }
+                                            if (Convert.ToInt32(ver_1) > Convert.ToInt32(ver_2))
+                                            {
+                                                it.verification_date = item.verification_date;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+                        if (b_1 == true)
+                        {
+                            HTTP.items.Add(item);
+                        }
+                    }
+                    var options = new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    };
+                    await JsonSerializer.SerializeAsync<Result>(fs, HTTP, options);
+                }
+            }
+            MessageBox.Show("Поиск завершён");
+        }
+
+        private void button_HTTP_Click(object sender, EventArgs e)
+        {
+            dataGridView4.Rows.Clear();
+            id = 1;
+            foreach (var item in HTTP.items)
+            {
+                dataGridView4.Rows.Add(id++,
+                                        item.vri_id,
+                                        item.org_title,
+                                        item.mit_number,
+                                        item.mit_title,
+                                        item.mit_notation,
+                                        item.mi_modification,
+                                        item.mi_number,
+                                        item.verification_date,
+                                        item.valid_date,
+                                        item.result_docnum,
+                                        item.applicability);
+            }
+        }
     }
     class Item
     {
@@ -628,5 +779,16 @@ namespace FGIS
     class Date
     {
         public List<Result_poisk> histori { get; set; }
+    }
+    class Results
+    {
+        public int count { get; set; }
+        public int start { get; set; }
+        public int rows { get; set; }
+        public List<Item> items { get; set; }
+    }
+    class Saves
+    {
+        public Results result { get; set; }
     }
 }
